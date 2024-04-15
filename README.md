@@ -20,6 +20,10 @@ The datasets chosen for this project are sourced from ArXiv and PubMed OpenAcces
 - **Description**: Transform tokens into numerical vectors using GloVe (Global Vectors for Word Representation). This method embeds tokens into a continuous vector space that represents their meanings.
 
 ## Core Architecture
+<p align="center">
+  <img src="Static/ModelArchitecture.png" alt="Project Logo" width="350" height="300" />
+</p>
+
 
 The system utilizes a gated Recurrent Neural Network (RNN) architecture, specifically using Long Short-Term Memory (LSTM) networks. LSTMs are chosen to capture long-range dependencies within the text and to address the vanishing gradient issues typical of standard RNNs.
 
