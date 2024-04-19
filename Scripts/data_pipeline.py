@@ -2,6 +2,9 @@ import os
 import torch
 from tokenizer import Tokenizer
 from vectorizedata import GloveEmbedding
+import gc
+import gzip
+import pickle
 
 class FileLoader:
     """
@@ -68,9 +71,8 @@ class TextTokenizer:
             text (str): The text to be tokenized.
         
         Returns:
-            list: A list of tokens or token IDs.
-        """
-        self.tokenizer.fit(text)  
+            list: A list of tokens.
+        """ 
         return self.tokenizer.encode(text)
     
 class DatasetBuilder:
@@ -133,13 +135,32 @@ class TextProcessor:
         Returns:
             list: A dataset compiled from processed text files.
         """
-        for data in self.loader.load_files():
-            tokens = self.tokenizer.tokenize(data)
-            embeddings = self.embedder.fit_line(tokens)
-            data_tensor = torch.tensor(embeddings)
-            self.dataset_builder.add_data(data_tensor)
-        
+        count = 0
+        try:
+            for data in self.loader.load_files():
+                count += 1
+                tokens = self.tokenizer.tokenize(data)
+                embeddings = self.embedder.fit_line(tokens)
+                self.dataset_builder.add_data(embeddings)
+                if count%500 == 0:
+                    print(f'{count} files processed')
+                    if not os.path.exists(f'/Users/priyanshusingh/Desktop/AAI-627/AAI-627Project/ResearchPaperSummarizer/Dataset/tensor_dataset_batch{count/500}.pth.gz'):
+                        # Example: Compress and save a large tensor
+                        tensor_data = processor.dataset_builder.get_dataset()  # assuming this returns the data to save
+                        buffer = pickle.dumps(tensor_data)
+                        with gzip.open(f'/Users/priyanshusingh/Desktop/AAI-627/AAI-627Project/ResearchPaperSummarizer/Dataset/tensor_dataset_batch{count/500}.pth.gz', 'wb', compresslevel=9) as f:
+                            f.write(buffer)
+                        # torch.save(self.dataset_builder.get_dataset(),f'/Users/priyanshusingh/Desktop/AAI-627/AAI-627Project/ResearchPaperSummarizer/Dataset/tensor_dataset_batch{count/500}.pth', pickle_protocol=5)
+                    self.dataset_builder = DatasetBuilder()
+                    gc.collect()
+        except Exception as e:
+            print(f"Error processing file: {e}")
         return self.dataset_builder.get_dataset()
+    
+    def save_tensor_dataset(self):
+        '''Saving the dataset with is a list of tensors'''
+        torch.save(self.dataset_builder.get_dataset(), '/Users/priyanshusingh/Desktop/AAI-627/AAI-627Project/ResearchPaperSummarizer/Dataset/tensor_dataset.pth')
+        print('Dataset Saved at ResearchPaperSummarizer/Dataset/tensor_dataset.pth')
 
 if __name__ == '__main__':
     data_path = '/Users/priyanshusingh/Desktop/AAI-627/AAI-627Project/ResearchPaperSummarizer/Data/sumpubmed/line_text'
