@@ -1,4 +1,4 @@
-import Preprocessor
+from preprocessor import Preprocessor
 class Tokenizer:
     def __init__(self, sos_token='<s>', eos_token='</s>', pad_token='<pad>', unk_token='<unk>', mask_token='<mask>'):
         # Special tokens.

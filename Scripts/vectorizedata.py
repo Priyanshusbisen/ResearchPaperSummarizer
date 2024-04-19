@@ -1,59 +1,72 @@
-import torch
 import os
-import urllib.request
-import matplotlib.pyplot as plt
-from scipy import spatial
-from sklearn.manifold import TSNE
-import numpy as np
-import requests
 import zipfile
-import io
+import numpy as np
 import chakin
-import json
-import os
+import torch
 
-class WordEmbeddings():
-    """Class to download pretrained word embeddings"""
-    def __init__(self, data):
-        self._chaking_index = 16
-        self._num_dimentions = 300
-        self._subfolder_name = 'glove.240B.300d'
+class GloveVector:
+    """Class to manage download and extraction of pretrained GloVe word embeddings."""
+    def __init__(self):
+        self._chakin_index = 16  # Index for GloVe.840B.300d in chakin
+        self._num_dimensions = 300
+        self._subfolder_name = 'glove.840B.300d'
         self._data_folder = 'embeddings'
-        self._zip_path = os.path_join(self._data_folder,f'{self._subfolder_name}')
-        self._unzip_folder = os.path.join(self._data_folder,self._subfolder_name)
-        self._glove_file_name = os.path.join(self._unzip_folder,f'{self._subfolder_name}.txt')
-        
-        if not os.path.exists(self._unzip_folder) and not os.path.exists(self._zip_path):
-            self._retrieve()
+        self._zip_path = os.path.join(self._data_folder, f'{self._subfolder_name}.zip')
+        self._unzip_folder = os.path.join(self._data_folder, self._subfolder_name)
+        self.glove_file_name = os.path.join(self._unzip_folder, f'{self._subfolder_name}.txt')
+
+    def download_embeddings(self):
+        """Download the embeddings using chakin if they are not already downloaded."""
+        if not os.path.exists(self._zip_path):
+            print(f"Downloading embeddings to '{self._zip_path}'")
+            chakin.download(number=self._chakin_index, save_dir=self._data_folder)
+            print("Download complete.")
+
+    def extract_embeddings(self):
+        """Extracts the embeddings if not already extracted."""
         if not os.path.exists(self._unzip_folder):
-            self._extract()
-        self.model = None
-        
-    def _retrieve(self):    
-        # GloVe by Stanford is licensed Apache 2.0: 
-        #     https://github.com/stanfordnlp/GloVe/blob/master/LICENSE
-        #     http://nlp.stanford.edu/data/glove.twitter.27B.zip
-        #     Copyright 2014 The Board of Trustees of The Leland Stanford Junior University
-        print("Downloading embeddings to '{}'".format(self._zip_path))
-        chakin.download(number=self._chaking_index, save_dir='./{}'.format(self._data_folder))
+            os.makedirs(self._unzip_folder, exist_ok=True)
+            with zipfile.ZipFile(self._zip_path, 'r') as zip_ref:
+                zip_ref.extractall(self._unzip_folder)
+            print(f"Extracted embeddings to '{self._unzip_folder}'")
 
-    def _extract(self):
-        # Extract the zip file
-        with zipfile.ZipFile(self._zip_path, 'r') as zip_ref:
-            zip_ref.extractall(self._unzip_folder)
+    def apply(self):
+        """Ensure embeddings are downloaded and extracted."""
+        self.download_embeddings()
+        self.extract_embeddings()
 
-    def _load_glove(self):
-        #Load the glove model
-        with open(f'{self._glove_file_name}', 'r') as data:
-            glove_file = data
+    def get_glove_file(self):
+        return self.glove_file_name
 
-    def fit(self, data):
-        pass
-        
+class GloveEmbedding:
+    """Class to handle GloVe word embeddings loading and querying."""
+    def __init__(self):
+        glove_vector = GloveVector()
+        glove_vector.apply()
+        self.glove_file = glove_vector.get_glove_file()
+        self.embedding_dict = {}
+        self.load_glove_model()
 
-        
+    def load_glove_model(self):
+        """Loads the GloVe model from a file while handling exceptions in vector parsing."""
+        with open(self.glove_file, 'r') as file:
+            for line in file:
+                data = line.split()
+                if len(data) <= 2:  # Checks if there is at least one word and one number
+                    continue
+                word = data[0]
+                try:
+                    vector = np.asarray(data[1:], dtype="float32")
+                except ValueError:
+                    continue  # Skip lines where conversion fails
+                self.embedding_dict[word] = vector
 
 
+    def get_word_embedding(self, word, dim=300):
+        """Retrieve a word embedding, or return a zero vector if the word is not found."""
+        return self.embedding_dict.get(word, np.zeros(dim))
 
-
-
+    def fit_line(self, sentence):
+        """Converts a list of words in a sentence to a tensor of embeddings."""
+        embeddings = [self.get_word_embedding(word) for word in sentence]
+        return torch.tensor(embeddings)
