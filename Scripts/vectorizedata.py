@@ -68,5 +68,6 @@ class GloveEmbedding:
 
     def fit_line(self, sentence):
         """Converts a list of words in a sentence to a tensor of embeddings."""
-        embeddings = [self.get_word_embedding(word) for word in sentence]
+        embeddings = np.array([self.get_word_embedding(word) for word in sentence])
+
         return torch.tensor(embeddings)

@@ -70,6 +70,7 @@ class Preprocessor():
         """
         sentence = sentence.lower()
         sentence = sentence.replace('<unk>', '')
+        sentence = sentence.replace('\n', ' ')
         if self.numbers:
             sentence = Preprocessor.remove_number(sentence=sentence)
         if self.url:

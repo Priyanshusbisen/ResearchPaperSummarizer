@@ -53,7 +53,7 @@ if __name__ == '__main__':
     DEC_HID_DIM = 512  # Hidden dimension size for the decoder
     ENC_DROPOUT = 0.5
     DEC_DROPOUT = 0.5
-    LEARNING_RATE = 0.001
+    LEARNING_RATE = 0.01
     N_EPOCHS = 10
     CLIP = 1
 
